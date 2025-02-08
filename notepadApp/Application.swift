@@ -17,7 +17,7 @@ final class Application {
     
     func configureMainInterface(_ window: UIWindow = UIWindow()) {
         var expectViewController: UIViewController!
-        expectViewController = UIViewController()
+        expectViewController = NotesViewController()
         expectViewController.title = "Notepad"
         expectViewController.view.backgroundColor = .green
         if let window = UIApplication.shared.windows.first {
