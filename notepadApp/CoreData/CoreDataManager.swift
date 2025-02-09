@@ -75,8 +75,9 @@ class NotesViewModel {
         CoreDataManager.shared.saveContext()
     }
     
-    func fetchNotes() -> [NoteModel] {
-        let request = NoteModel.fetchRequest()
+    func fetchNotes(sortAscending: Bool = true) -> [NoteModel] {
+      let request = NoteModel.fetchRequest()
+      request.sortDescriptors = [NSSortDescriptor(key: "createdTime", ascending: sortAscending)]
         do {
             return try context.fetch(request)
         } catch {
@@ -84,6 +85,25 @@ class NotesViewModel {
             return []
         }
     }
+    
+    func fetchNotes(with predicate: NSPredicate) -> [NoteModel] {
+      let request = NoteModel.fetchRequest()
+        request.predicate = predicate
+        do {
+            return try context.fetch(request)
+        } catch {
+            print("Fetch error: \(error)")
+            return []
+        }
+    }
+    
+    // In NotesViewModel:
+    lazy var fetchedResultsController: NSFetchedResultsController<NoteModel> = {
+        let request = NoteModel.fetchRequest()
+        request.fetchBatchSize = 20 // Load 20 notes at a time
+        let controller = NSFetchedResultsController(fetchRequest: request, managedObjectContext: context, sectionNameKeyPath: nil , cacheName: nil)
+        return controller
+    }()
 }
 
 class NotesViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
@@ -109,6 +129,7 @@ class NotesViewController: UIViewController, UITableViewDelegate, UITableViewDat
         tableView.frame = view.bounds
         tableView.delegate = self
         tableView.dataSource = self
+        
     }
     
     @objc func addNewNote() {
@@ -148,6 +169,47 @@ class NotesViewController: UIViewController, UITableViewDelegate, UITableViewDat
             notes.remove(at: indexPath.row)
             tableView.deleteRows(at: [indexPath], with: .fade)
         }
+    }
+    // In NotesViewController:
+//    private func createLayout() -> UICollectionViewLayout {
+//      UICollectionViewCompositionalLayout { [weak self] (sectionIndex, layoutEnv) -> NSCollectionLayoutSection? in
+//        let device = layoutEnv.traitCollection
+//        let columnCount = (device.horizontalSizeClass == .compact) ? 1 : 2 // 1 column for iPhone, 2 for iPad
+//        let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .estimated(100))
+//        let group = NSCollectionLayoutGroup.horizontal(layoutSize: itemSize, subitem: item, count: columnCount)
+//        return NSCollectionLayoutSection(group: group)
+//      }
+//    }
+
+    // Update setupUI() to use UICollectionView instead of UITableView.
+    
+    // In NotesViewController:
+    let searchController = UISearchController()
+
+    func updateSearchResults(for searchController: UISearchController) {
+      guard let query = searchController.searchBar.text else { return }
+      let predicate = NSPredicate(format: "content CONTAINS[cd] %@", query)
+      notes = viewModel.fetchNotes(with: predicate) // Extend ViewModel to accept predicates.
+    }
+    
+    // In NotesViewController: Implement UIScrollViewDelegate to detect scroll position.
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+      let offsetY = scrollView.contentOffset.y
+      if offsetY > scrollView.contentSize.height - scrollView.frame.height {
+        loadMoreNotes() // Fetch next batch
+      }
+    }
+    
+    func loadMoreNotes() {
+        viewModel.fetchNotes()
+    }
+    
+    // In NotesViewController:
+    private func generateRandomGradient() {
+      let gradient = CAGradientLayer()
+      gradient.colors =  [UIColor.red.cgColor, UIColor.green.cgColor] //[UIColor.random().cgColor, UIColor.random().cgColor]
+      gradient.frame = view.bounds
+      view.layer.insertSublayer(gradient, at: 0)
     }
 }
 
