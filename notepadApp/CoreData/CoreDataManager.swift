@@ -50,6 +50,8 @@ extension NoteModel {
     }
 }
 
+import CoreData
+
 class NotesViewModel {
     let context = CoreDataManager.shared.context
     
@@ -75,19 +77,9 @@ class NotesViewModel {
         CoreDataManager.shared.saveContext()
     }
     
-    func fetchNotes(sortAscending: Bool = true) -> [NoteModel] {
-      let request = NoteModel.fetchRequest()
-      request.sortDescriptors = [NSSortDescriptor(key: "createdTime", ascending: sortAscending)]
-        do {
-            return try context.fetch(request)
-        } catch {
-            print("Fetch error: \(error)")
-            return []
-        }
-    }
-    
-    func fetchNotes(with predicate: NSPredicate) -> [NoteModel] {
-      let request = NoteModel.fetchRequest()
+    func fetchNotes(with predicate: NSPredicate? = nil) -> [NoteModel] {
+        let request = NoteModel.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(key: "createdTime", ascending: false)]
         request.predicate = predicate
         do {
             return try context.fetch(request)
@@ -96,39 +88,30 @@ class NotesViewModel {
             return []
         }
     }
-    
-    // In NotesViewModel:
-    lazy var fetchedResultsController: NSFetchedResultsController<NoteModel> = {
-        let request = NoteModel.fetchRequest()
-        request.fetchBatchSize = 20 // Load 20 notes at a time
-        let controller = NSFetchedResultsController(fetchRequest: request, managedObjectContext: context, sectionNameKeyPath: nil , cacheName: nil)
-        return controller
-    }()
 }
 
-class NotesViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
-    var viewModel = NotesViewModel()
+import UIKit
+import CoreData
+
+class NotesViewController: UIViewController {
+    var collectionView: UICollectionView!
     var notes: [NoteModel] = []
-    let tableView = UITableView()
+    var filteredNotes: [NoteModel] = []
+    let viewModel = NotesViewModel()
+    let searchController = UISearchController(searchResultsController: nil)
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        setupUI()
+        setupCollectionView()
+        setupSearchController()
         notes = viewModel.fetchNotes()
-    }
-    
-    func setupUI() {
-        view.backgroundColor = .white
-        navigationItem.title = "Notepad"
         navigationItem.rightBarButtonItems = [
             UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addNewNote)),
             UIBarButtonItem(title: "Edit", style: .plain, target: self, action: #selector(editNotes))
         ]
-        
-        view.addSubview(tableView)
-        tableView.frame = view.bounds
-        tableView.delegate = self
-        tableView.dataSource = self
+
+    }
+    @objc func editNotes() {
         
     }
     
@@ -138,78 +121,117 @@ class NotesViewController: UIViewController, UITableViewDelegate, UITableViewDat
         navigationController?.pushViewController(detailVC, animated: true)
     }
     
-    @objc func editNotes() {
-        tableView.setEditing(!tableView.isEditing, animated: true)
+    private func setupCollectionView() {
+        let layout = UICollectionViewCompositionalLayout { [weak self] (sectionIndex, layoutEnv) -> NSCollectionLayoutSection? in
+            return self?.createLayoutSection(for: layoutEnv)
+        }
+        
+        collectionView = UICollectionView(frame: view.bounds, collectionViewLayout: layout)
+        collectionView.delegate = self
+        collectionView.dataSource = self
+        collectionView.register(NoteCell.self, forCellWithReuseIdentifier: "NoteCell")
+        view.addSubview(collectionView)
     }
     
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return notes.count
+    private func createLayoutSection(for layoutEnv: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
+        let columnCount: Int
+        switch layoutEnv.traitCollection.horizontalSizeClass {
+        case .compact: columnCount = 1 // iPhone
+        case .regular: columnCount = 2 // iPad
+        default: columnCount = 1
+        }
+
+        let itemSize = NSCollectionLayoutSize(
+            widthDimension: .fractionalWidth(1.0 / CGFloat(columnCount)),
+            heightDimension: .estimated(100)
+        )
+        let item = NSCollectionLayoutItem(layoutSize: itemSize)
+        let group = NSCollectionLayoutGroup.horizontal(layoutSize: itemSize, subitems: [item])
+        
+        let section = NSCollectionLayoutSection(group: group)
+        section.interGroupSpacing = 8
+        section.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)
+        
+        return section
     }
     
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = UITableViewCell(style: .subtitle, reuseIdentifier: "cell")
-        let note = notes[indexPath.row]
-        cell.textLabel?.text = note.title
-        cell.detailTextLabel?.text = note.content
+    private func setupSearchController() {
+        searchController.searchResultsUpdater = self
+        searchController.obscuresBackgroundDuringPresentation = false
+        searchController.searchBar.placeholder = "Search notes"
+        navigationItem.searchController = searchController
+        definesPresentationContext = true
+    }
+    
+    var isSearching: Bool {
+        return searchController.isActive && !(searchController.searchBar.text?.isEmpty ?? true)
+    }
+}
+
+// MARK: - UICollectionViewDataSource & Delegate
+extension NotesViewController: UICollectionViewDataSource, UICollectionViewDelegate {
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        return isSearching ? filteredNotes.count : notes.count
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "NoteCell", for: indexPath) as! NoteCell
+        let note = isSearching ? filteredNotes[indexPath.row] : notes[indexPath.row]
+        cell.titleLabel.text = note.title
+        cell.contentLabel.text = note.content
+        cell.dateLabel.text = DateFormatter.localizedString(from: note.createdTime, dateStyle: .short, timeStyle: .short)
         return cell
     }
     
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let note = notes[indexPath.row]
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        let note = isSearching ? filteredNotes[indexPath.row] : notes[indexPath.row]
         let detailVC = NoteDetailViewController()
         detailVC.note = note
         detailVC.delegate = self
         navigationController?.pushViewController(detailVC, animated: true)
     }
     
-    func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
-        if editingStyle == .delete {
-            let note = notes[indexPath.row]
-            viewModel.deleteNote(note: note)
-            notes.remove(at: indexPath.row)
-            tableView.deleteRows(at: [indexPath], with: .fade)
+    func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
+        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { _ in
+            let deleteAction = UIAction(title: "Delete", image: UIImage(systemName: "trash"), attributes: .destructive) { _ in
+                self.deleteNote(at: indexPath)
+            }
+            return UIMenu(title: "", children: [deleteAction])
         }
     }
-    // In NotesViewController:
-//    private func createLayout() -> UICollectionViewLayout {
-//      UICollectionViewCompositionalLayout { [weak self] (sectionIndex, layoutEnv) -> NSCollectionLayoutSection? in
-//        let device = layoutEnv.traitCollection
-//        let columnCount = (device.horizontalSizeClass == .compact) ? 1 : 2 // 1 column for iPhone, 2 for iPad
-//        let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .estimated(100))
-//        let group = NSCollectionLayoutGroup.horizontal(layoutSize: itemSize, subitem: item, count: columnCount)
-//        return NSCollectionLayoutSection(group: group)
-//      }
-//    }
-
-    // Update setupUI() to use UICollectionView instead of UITableView.
     
-    // In NotesViewController:
-    let searchController = UISearchController()
+    private func deleteNote(at indexPath: IndexPath) {
+        let note = isSearching ? filteredNotes[indexPath.row] : notes[indexPath.row]
+        viewModel.deleteNote(note: note)
+        if isSearching {
+            filteredNotes.remove(at: indexPath.row)
+        } else {
+            notes.remove(at: indexPath.row)
+        }
+        collectionView.deleteItems(at: [indexPath])
+    }
+}
 
+// MARK: - UISearchResultsUpdating
+extension NotesViewController: UISearchResultsUpdating {
     func updateSearchResults(for searchController: UISearchController) {
-      guard let query = searchController.searchBar.text else { return }
-      let predicate = NSPredicate(format: "content CONTAINS[cd] %@", query)
-      notes = viewModel.fetchNotes(with: predicate) // Extend ViewModel to accept predicates.
+        guard let query = searchController.searchBar.text?.lowercased(), !query.isEmpty else {
+            filteredNotes = notes
+            collectionView.reloadData()
+            return
+        }
+        
+        let predicate = NSPredicate(format: "content CONTAINS[cd] %@ OR title CONTAINS[cd] %@", query, query)
+        filteredNotes = viewModel.fetchNotes(with: predicate)
+        collectionView.reloadData()
     }
-    
-    // In NotesViewController: Implement UIScrollViewDelegate to detect scroll position.
-    func scrollViewDidScroll(_ scrollView: UIScrollView) {
-      let offsetY = scrollView.contentOffset.y
-      if offsetY > scrollView.contentSize.height - scrollView.frame.height {
-        loadMoreNotes() // Fetch next batch
-      }
-    }
-    
-    func loadMoreNotes() {
-        viewModel.fetchNotes()
-    }
-    
-    // In NotesViewController:
-    private func generateRandomGradient() {
-      let gradient = CAGradientLayer()
-      gradient.colors =  [UIColor.red.cgColor, UIColor.green.cgColor] //[UIColor.random().cgColor, UIColor.random().cgColor]
-      gradient.frame = view.bounds
-      view.layer.insertSublayer(gradient, at: 0)
+}
+
+// MARK: - NoteDetailViewControllerDelegate
+extension NotesViewController: NoteDetailViewControllerDelegate {
+    func didSaveNote() {
+        notes = viewModel.fetchNotes()
+        collectionView.reloadData()
     }
 }
 
@@ -257,13 +279,6 @@ class NoteDetailViewController: UIViewController {
     }
 }
 
-extension NotesViewController: NoteDetailViewControllerDelegate {
-    func didSaveNote() {
-        notes = viewModel.fetchNotes()
-        tableView.reloadData()
-    }
-}
-
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
@@ -274,5 +289,43 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         window?.rootViewController = navController
         window?.makeKeyAndVisible()
         return true
+    }
+}
+
+import UIKit
+
+class NoteCell: UICollectionViewCell {
+    let titleLabel = UILabel()
+    let contentLabel = UILabel()
+    let dateLabel = UILabel()
+    
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        setupViews()
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    private func setupViews() {
+        backgroundColor = .systemBackground
+        layer.cornerRadius = 8
+        layer.shadowOpacity = 0.1
+        
+        let stack = UIStackView(arrangedSubviews: [titleLabel, contentLabel, dateLabel])
+        stack.axis = .vertical
+        stack.spacing = 4
+        addSubview(stack)
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            stack.topAnchor.constraint(equalTo: topAnchor, constant: 8),
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
+            stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8)
+        ])
+        
+        dateLabel.font = UIFont.systemFont(ofSize: 12)
+        dateLabel.textColor = .secondaryLabel
     }
 }
