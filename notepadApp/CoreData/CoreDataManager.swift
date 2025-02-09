@@ -100,7 +100,10 @@ class NotesViewController: UIViewController, UITableViewDelegate, UITableViewDat
     func setupUI() {
         view.backgroundColor = .white
         navigationItem.title = "Notepad"
-        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addNewNote))
+        navigationItem.rightBarButtonItems = [
+            UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addNewNote)),
+            UIBarButtonItem(title: "Edit", style: .plain, target: self, action: #selector(editNotes))
+        ]
         
         view.addSubview(tableView)
         tableView.frame = view.bounds
@@ -114,6 +117,10 @@ class NotesViewController: UIViewController, UITableViewDelegate, UITableViewDat
         navigationController?.pushViewController(detailVC, animated: true)
     }
     
+    @objc func editNotes() {
+        tableView.setEditing(!tableView.isEditing, animated: true)
+    }
+    
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return notes.count
     }
@@ -124,6 +131,14 @@ class NotesViewController: UIViewController, UITableViewDelegate, UITableViewDat
         cell.textLabel?.text = note.title
         cell.detailTextLabel?.text = note.content
         return cell
+    }
+    
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let note = notes[indexPath.row]
+        let detailVC = NoteDetailViewController()
+        detailVC.note = note
+        detailVC.delegate = self
+        navigationController?.pushViewController(detailVC, animated: true)
     }
     
     func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
@@ -144,22 +159,39 @@ class NoteDetailViewController: UIViewController {
     weak var delegate: NoteDetailViewControllerDelegate?
     let textView = UITextView()
     let viewModel = NotesViewModel()
+    var note: NoteModel?
     
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .white
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Save", style: .done, target: self, action: #selector(saveNote))
+        navigationItem.rightBarButtonItems = [
+            UIBarButtonItem(title: "Save", style: .done, target: self, action: #selector(saveNote)),
+            UIBarButtonItem(title: "Edit", style: .plain, target: self, action: #selector(editNote))
+        ]
         
         textView.frame = view.bounds
         textView.font = UIFont.systemFont(ofSize: 18)
         view.addSubview(textView)
+        
+        if let note = note {
+            textView.text = note.content
+        }
     }
     
     @objc func saveNote() {
         guard let content = textView.text, !content.isEmpty else { return }
-        viewModel.addNote(content: content)
+        if let note = note {
+            viewModel.updateNote(note: note, newContent: content)
+        } else {
+            viewModel.addNote(content: content)
+        }
         delegate?.didSaveNote()
         navigationController?.popViewController(animated: true)
+    }
+    
+    @objc func editNote() {
+        textView.isEditable = true
+        textView.becomeFirstResponder()
     }
 }
 
