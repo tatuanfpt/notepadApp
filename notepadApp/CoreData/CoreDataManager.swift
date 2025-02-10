@@ -88,10 +88,21 @@ class NotesViewModel {
             return []
         }
     }
+    
+    func fetchNotes(sortAscending: Bool = true) -> [NoteModel] {
+        let request = NoteModel.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(key: "createdTime", ascending: sortAscending)]
+        do {
+            return try context.fetch(request)
+        } catch {
+            print("Fetch error: \(error)")
+            return []
+        }
+    }
+
 }
 
 import UIKit
-import CoreData
 
 class NotesViewController: UIViewController {
     var collectionView: UICollectionView!
@@ -99,20 +110,17 @@ class NotesViewController: UIViewController {
     var filteredNotes: [NoteModel] = []
     let viewModel = NotesViewModel()
     let searchController = UISearchController(searchResultsController: nil)
+    var sortAscending: Bool = true // Default to ascending order
     
     override func viewDidLoad() {
         super.viewDidLoad()
         setupCollectionView()
         setupSearchController()
-        notes = viewModel.fetchNotes()
+        setupSortToggle() // Add sort toggle
+        notes = viewModel.fetchNotes(sortAscending: sortAscending)
         navigationItem.rightBarButtonItems = [
-            UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addNewNote)),
-            UIBarButtonItem(title: "Edit", style: .plain, target: self, action: #selector(editNotes))
+            UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addNewNote))
         ]
-
-    }
-    @objc func editNotes() {
-        
     }
     
     @objc func addNewNote() {
@@ -161,6 +169,19 @@ class NotesViewController: UIViewController {
         searchController.searchBar.placeholder = "Search notes"
         navigationItem.searchController = searchController
         definesPresentationContext = true
+    }
+    
+    private func setupSortToggle() {
+        let sortControl = UISegmentedControl(items: ["Oldest First", "Newest First"])
+        sortControl.selectedSegmentIndex = sortAscending ? 0 : 1
+        sortControl.addTarget(self, action: #selector(sortOrderChanged(_:)), for: .valueChanged)
+        navigationItem.leftBarButtonItem = UIBarButtonItem(customView: sortControl)
+    }
+    
+    @objc private func sortOrderChanged(_ sender: UISegmentedControl) {
+        sortAscending = sender.selectedSegmentIndex == 0
+        notes = viewModel.fetchNotes(sortAscending: sortAscending)
+        collectionView.reloadData()
     }
     
     var isSearching: Bool {
@@ -230,7 +251,7 @@ extension NotesViewController: UISearchResultsUpdating {
 // MARK: - NoteDetailViewControllerDelegate
 extension NotesViewController: NoteDetailViewControllerDelegate {
     func didSaveNote() {
-        notes = viewModel.fetchNotes()
+        notes = viewModel.fetchNotes(sortAscending: sortAscending)
         collectionView.reloadData()
     }
 }
