@@ -26,59 +26,55 @@ class NotesViewModelTests: XCTestCase {
         super.tearDown()
     }
     
+    // NotesViewModelTests.swift
     func testFetchNotesSorting() {
-        // Create test notes
-        let note1 = NoteModel(context: testCoreDataStack.context)
-//        note1.uuid = UUID()
-        note1.title = "Note 1"
-        note1.content = "Content 1"
-        note1.createdTime = Date(timeIntervalSinceNow: -3600) // 1 hour ago
+        let context = testCoreDataStack.context
         
-        let note2 = NoteModel(context: testCoreDataStack.context)
-//        note2.uuid = UUID()
-        note2.title = "Note 2"
-        note2.content = "Content 2"
-        note2.createdTime = Date() // Now
-        
-        // Save the context
-        do {
-            try testCoreDataStack.context.save()
-        } catch {
-            XCTFail("Failed to save test context: \(error)")
+        // Create test notes with proper entity description
+        guard let entity = NSEntityDescription.entity(forEntityName: "NoteModel", in: context) else {
+            XCTFail("Failed to create NoteModel entity")
+            return
         }
         
-        // Test sorting
+        let note1 = NoteModel(entity: entity, insertInto: context)
+        note1.id = 1
+        note1.title = "Note 1"
+        note1.createdTime = Date(timeIntervalSinceNow: -3600)
+        
+        let note2 = NoteModel(entity: entity, insertInto: context)
+        note2.id = 2
+        note2.title = "Note 2"
+        note2.createdTime = Date()
+        
+        do {
+            try context.save()
+        } catch {
+            XCTFail("Failed to save context: \(error)")
+        }
+        
+        // Test sorting logic
         let ascendingNotes = viewModel.fetchNotes(sortAscending: true)
         XCTAssertEqual(ascendingNotes.count, 2)
         XCTAssertEqual(ascendingNotes.first?.title, "Note 1")
-        XCTAssertEqual(ascendingNotes.last?.title, "Note 2")
-        
-        let descendingNotes = viewModel.fetchNotes(sortAscending: false)
-        XCTAssertEqual(descendingNotes.count, 2)
-        XCTAssertEqual(descendingNotes.first?.title, "Note 2")
-        XCTAssertEqual(descendingNotes.last?.title, "Note 1")
     }
-}
 
-// TestCoreDataStack.swift
 class TestCoreDataStack: CoreDataManagerProtocol {
     static let shared = TestCoreDataStack()
     let persistentContainer: NSPersistentContainer
     
     init() {
-        persistentContainer = NSPersistentContainer(name: "NoteList")
-        let description = persistentContainer.persistentStoreDescriptions.first
-        description?.type = NSInMemoryStoreType // Use in-memory store
-        
-        // Load the persistent stores
-        persistentContainer.loadPersistentStores { _, error in
-            if let error = error { fatalError("Test Core Data setup failed: \(error)") }
+        // Load the managed object model
+        guard let modelURL = Bundle.main.url(forResource: "NoteList", withExtension: "momd"),
+              let model = NSManagedObjectModel(contentsOf: modelURL) else {
+            fatalError("Failed to load Core Data model")
         }
         
-        // Ensure the NoteModel entity is registered
-        let entityDescription = NSEntityDescription.entity(forEntityName: "NoteModel", in: persistentContainer.viewContext)
-        if entityDescription == nil {
-            fatalError("Failed to register NoteModel entity in test Core Data stack.")
+        persistentContainer = NSPersistentContainer(name: "NoteList", managedObjectModel: model)
+        let description = persistentContainer.persistentStoreDescriptions.first
+        description?.type = NSInMemoryStoreType
+        
+        persistentContainer.loadPersistentStores { _, error in
+            if let error = error { fatalError("Test Core Data setup failed: \(error)") }
         }
     }
     

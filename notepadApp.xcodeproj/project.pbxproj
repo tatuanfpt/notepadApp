@@ -29,14 +29,6 @@
 			);
 			target = 260A5B042D54C05C007DA723 /* notepadApp */;
 		};
-		269806BB2D5CED5D002BD585 /* Exceptions for "notepadApp" folder in "notepadAppTests" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				CoreData/CoreDataManager.swift,
-				CoreData/NoteList.xcdatamodeld,
-			);
-			target = 2698068C2D5CE638002BD585 /* notepadAppTests */;
-		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -44,7 +36,6 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				260A5B172D54C05D007DA723 /* Exceptions for "notepadApp" folder in "notepadApp" target */,
-				269806BB2D5CED5D002BD585 /* Exceptions for "notepadApp" folder in "notepadAppTests" target */,
 			);
 			path = notepadApp;
 			sourceTree = "<group>";

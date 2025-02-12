@@ -40,15 +40,6 @@ class CoreDataManager: CoreDataManagerProtocol {
     }
 }
 
-@objc(NoteModel)
-class NoteModel: NSManagedObject {
-    @NSManaged var title: String
-    @NSManaged var content: String
-    @NSManaged var createdTime: Date
-    @NSManaged var lastEditTime: Date
-    @NSManaged var backgroundTheme: String
-}
-
 extension NoteModel {
     static func fetchRequest() -> NSFetchRequest<NoteModel> {
         return NSFetchRequest<NoteModel>(entityName: "NoteModel")
