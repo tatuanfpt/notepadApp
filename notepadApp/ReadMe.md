@@ -21,7 +21,6 @@ A simple iOS app for managing notes, built with **UIKit** and **Core Data**. Sup
 
 ## Setup
 1. Clone the repository.
-2. Install dependencies using `pod install`.
 3. Add your `GoogleService-Info.plist` file for Firebase integration.
 4. Build and run the app.
 
