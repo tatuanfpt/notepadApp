@@ -25,7 +25,7 @@ A simple iOS app for managing notes, built with **UIKit** and **Core Data**. Sup
 4. Build and run the app.
 
 ## Future Improvements
-- Add unit tests for Core Data and Firestore operations.
+- Add more unit tests for View Model and Firestore operations.
 - Implement conflict resolution for Firestore sync.
 - Add animations for note transitions.
 
