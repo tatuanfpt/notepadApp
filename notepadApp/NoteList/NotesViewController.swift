@@ -14,6 +14,8 @@ class NotesViewController: UIViewController {
     let searchController = UISearchController(searchResultsController: nil)
     var sortAscending: Bool = true // Default to ascending order
     var gradientLayer: CAGradientLayer!
+    private var isLoadingMoreNotes = false
+    private let loadingIndicator = UIActivityIndicatorView(style: .medium)
     private let gradientKey = "savedGradientColors"
     private var viewModel: NotesViewModelProtocol = NotesViewModel()
     
@@ -22,7 +24,12 @@ class NotesViewController: UIViewController {
         viewModel.onError = { [weak self] message in
             self?.showErrorAlert(message: message)
         }
-        notes = viewModel.fetchNotes(sortAscending: true)
+        setupLoadingIndicator()
+        viewModel.onNotesUpdated = { [weak self] in
+            self?.collectionView.reloadData()
+            self?.isLoadingMoreNotes = false
+            self?.loadingIndicator.stopAnimating()
+        }
         setupCollectionView()
         setupSearchController()
         setupSortToggle() // Add sort toggle
@@ -37,6 +44,15 @@ class NotesViewController: UIViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         reloadNotes()
+    }
+    
+    private func setupLoadingIndicator() {
+        view.addSubview(loadingIndicator)
+        loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            loadingIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            loadingIndicator.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16)
+        ])
     }
     
     private func reloadNotes() {
@@ -147,9 +163,7 @@ class NotesViewController: UIViewController {
     }
     
     @objc private func sortOrderChanged(_ sender: UISegmentedControl) {
-        sortAscending = sender.selectedSegmentIndex == 0
-        notes = viewModel.fetchNotes(sortAscending: sortAscending)
-        collectionView.reloadData()
+        viewModel.sortAscending = (sender.selectedSegmentIndex == 0) // 0 = Oldest First
     }
     
     var isSearching: Bool {
@@ -160,15 +174,16 @@ class NotesViewController: UIViewController {
 // MARK: - UICollectionViewDataSource & Delegate
 extension NotesViewController: UICollectionViewDataSource, UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return isSearching ? filteredNotes.count : notes.count
+        return isSearching ? filteredNotes.count : viewModel.numberOfNotes()
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "NoteCell", for: indexPath) as! NoteCell
-        let note = isSearching ? filteredNotes[indexPath.row] : notes[indexPath.row]
-        cell.titleLabel.text = note.title
-        cell.contentLabel.text = note.content
-        cell.dateLabel.text = DateFormatter.localizedString(from: note.createdTime, dateStyle: .short, timeStyle: .short)
+        if let note = viewModel.note(at: indexPath.row) {
+            cell.titleLabel.text = note.title
+            cell.contentLabel.text = note.content
+            cell.dateLabel.text = DateFormatter.localizedString(from: note.createdTime, dateStyle: .short, timeStyle: .short)
+        }
         return cell
     }
     
@@ -219,8 +234,31 @@ extension NotesViewController: UISearchResultsUpdating {
 // MARK: - NoteDetailViewControllerDelegate
 extension NotesViewController: NoteDetailViewControllerDelegate {
     func didSaveNote() {
-        notes = viewModel.fetchNotes(sortAscending: sortAscending)
+        viewModel.loadMoreNotes()
         collectionView.reloadData()
+    }
+}
+
+// MARK: - UIScrollViewDelegate
+extension NotesViewController: UIScrollViewDelegate {
+    // Update scroll detection logic
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        let offsetY = scrollView.contentOffset.y
+        let contentHeight = scrollView.contentSize.height
+        let screenHeight = scrollView.frame.size.height
+        
+        // Only trigger if:
+        // 1. User is near bottom
+        // 2. Not already loading
+        // 3. Total notes > current batch
+        if offsetY > contentHeight - screenHeight * 2,
+           !isLoadingMoreNotes,
+           viewModel.numberOfNotes() < viewModel.totalNotesCount {
+            
+            isLoadingMoreNotes = true
+            loadingIndicator.startAnimating()
+            viewModel.loadMoreNotes()
+        }
     }
 }
 

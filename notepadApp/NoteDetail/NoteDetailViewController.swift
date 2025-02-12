@@ -21,7 +21,6 @@ class NoteDetailViewController: UIViewController {
         super.viewDidLoad()
         navigationItem.rightBarButtonItems = [
             UIBarButtonItem(title: "Save", style: .done, target: self, action: #selector(saveNote)),
-            UIBarButtonItem(title: "Edit", style: .plain, target: self, action: #selector(editNote)),
             UIBarButtonItem(title: "Delete", style: .plain, target: self, action: #selector(deleteNote)), // Add delete button
         ]
         setupTextView()
