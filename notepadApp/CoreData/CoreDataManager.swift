@@ -119,6 +119,8 @@ class NotesViewController: UIViewController {
     let viewModel = NotesViewModel()
     let searchController = UISearchController(searchResultsController: nil)
     var sortAscending: Bool = true // Default to ascending order
+    var gradientLayer: CAGradientLayer!
+    private let gradientKey = "savedGradientColors"
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -129,6 +131,49 @@ class NotesViewController: UIViewController {
         navigationItem.rightBarButtonItems = [
             UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addNewNote))
         ]
+        setupGradientBackground()
+        setupRefreshButton()
+        loadSavedGradient()
+    }
+    private func setupGradientBackground() {
+        gradientLayer = CAGradientLayer()
+        gradientLayer.frame = view.bounds
+        updateGradientColors()
+        view.layer.insertSublayer(gradientLayer, at: 0)
+    }
+    
+    private func updateGradientColors() {
+        gradientLayer.colors = [UIColor.random().cgColor, UIColor.random().cgColor]
+    }
+    
+    private func setupRefreshButton() {
+        let refreshButton = UIBarButtonItem(
+            image: UIImage(systemName: "arrow.clockwise"),
+            style: .plain,
+            target: self,
+            action: #selector(refreshBackground)
+        )
+        navigationItem.rightBarButtonItems?.append(refreshButton)
+    }
+    
+    @objc private func refreshBackground() {
+        updateGradientColors()
+        saveGradientColors()
+    }
+    
+    private func saveGradientColors() {
+        let colors = gradientLayer.colors as! [CGColor]
+        let colorStrings = colors.map { $0.toString() }
+        UserDefaults.standard.set(colorStrings, forKey: gradientKey)
+    }
+    
+    private func loadSavedGradient() {
+        if let colorStrings = UserDefaults.standard.array(forKey: gradientKey) as? [String] {
+            let colors = colorStrings.map { CGColor.fromString($0)}
+            gradientLayer.colors = colors
+        } else {
+            updateGradientColors()
+        }
     }
     
     @objc func addNewNote() {
@@ -146,6 +191,7 @@ class NotesViewController: UIViewController {
         collectionView.delegate = self
         collectionView.dataSource = self
         collectionView.register(NoteCell.self, forCellWithReuseIdentifier: "NoteCell")
+        collectionView.backgroundColor = .clear
         view.addSubview(collectionView)
     }
     
@@ -276,22 +322,18 @@ class NoteDetailViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .white
         navigationItem.rightBarButtonItems = [
             UIBarButtonItem(title: "Save", style: .done, target: self, action: #selector(saveNote)),
             UIBarButtonItem(title: "Edit", style: .plain, target: self, action: #selector(editNote)),
-            UIBarButtonItem(title: "Delete", style: .plain, target: self, action: #selector(deleteNote)) // Add delete button
+            UIBarButtonItem(title: "Delete", style: .plain, target: self, action: #selector(deleteNote)), // Add delete button
         ]
-        
         textView.frame = view.bounds
         textView.font = UIFont.systemFont(ofSize: 18)
         view.addSubview(textView)
-        
         if let note = note {
             textView.text = note.content
         }
     }
-    
     @objc func deleteNote() {
         guard let note = note else { return }
         
