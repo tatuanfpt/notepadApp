@@ -33,6 +33,16 @@ class NotesViewController: UIViewController {
         setupRefreshButton()
         loadSavedGradient()
     }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        reloadNotes()
+    }
+    
+    private func reloadNotes() {
+        viewModel.fetchNotes(sortAscending: sortAscending)
+        collectionView.reloadData()
+    }
     private func setupGradientBackground() {
         gradientLayer = CAGradientLayer()
         gradientLayer.frame = view.bounds

@@ -17,10 +17,12 @@ protocol NotesViewModelProtocol {
     var onError: ((String) -> Void)? { get set }
 }
 
-final class NotesViewModel: NotesViewModelProtocol {
+final class NotesViewModel: NSObject, NotesViewModelProtocol, NSFetchedResultsControllerDelegate {
     private let coreDataManager: CoreDataManagerProtocol
     private let logger: LoggerProtocol
     var onError: ((String) -> Void)?
+    private var fetchedResultsController: NSFetchedResultsController<NoteModel>!
+    var onNotesUpdated: (() -> Void)?
     
     // Dependency Injection
     
@@ -28,6 +30,10 @@ final class NotesViewModel: NotesViewModelProtocol {
          logger: LoggerProtocol = ConsoleLogger()) {
         self.coreDataManager = coreDataManager
         self.logger = logger
+    }
+    
+    func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
+        onNotesUpdated?()
     }
     
     private func saveContext() {
@@ -70,12 +76,12 @@ final class NotesViewModel: NotesViewModelProtocol {
     }
     
     func addNote(content: String) {
-        coreDataManager.context.perform { [weak self] in
-            let newNote = NoteModel(context: self?.coreDataManager.context ?? NSManagedObjectContext())
+        coreDataManager.context.performAndWait { // Use performAndWait
+            let newNote = NoteModel(context: coreDataManager.context)
             newNote.content = content
             newNote.createdTime = Date()
             newNote.lastEditTime = Date()
-            self?.saveContext()
+            saveContext() // Save immediately
         }
     }
     

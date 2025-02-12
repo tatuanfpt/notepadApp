@@ -24,13 +24,19 @@ class NoteDetailViewController: UIViewController {
             UIBarButtonItem(title: "Edit", style: .plain, target: self, action: #selector(editNote)),
             UIBarButtonItem(title: "Delete", style: .plain, target: self, action: #selector(deleteNote)), // Add delete button
         ]
+        setupTextView()
+    }
+    
+    fileprivate func setupTextView() {
+        view.addSubview(textView)
         textView.frame = view.bounds
         textView.font = UIFont.systemFont(ofSize: 18)
-        view.addSubview(textView)
         if let note = note {
             textView.text = note.content
         }
+        textView.becomeFirstResponder()
     }
+    
     @objc func deleteNote() {
         guard let note = note else { return }
         
