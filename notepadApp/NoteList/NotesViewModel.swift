@@ -6,40 +6,85 @@
 //
 
 import UIKit
+import CoreData
 
-class NotesViewModel {
-    let context = CoreDataManager.shared.context
+protocol NotesViewModelProtocol {
+    func fetchNotes(sortAscending: Bool) -> [NoteModel]
+    func addNote(content: String)
+    func updateNote(_ note: NoteModel, newContent: String)
+    func deleteNote(_ note: NoteModel)
+    func fetchNotes(with predicate: NSPredicate?) -> [NoteModel]
+    var onError: ((String) -> Void)? { get set }
+}
+
+final class NotesViewModel: NotesViewModelProtocol {
+    private let coreDataManager: CoreDataManagerProtocol
+    private let logger: LoggerProtocol
+    var onError: ((String) -> Void)?
     
-    func addNote(content: String) {
-        let newNote = NoteModel(context: context)
-        newNote.content = content
-        newNote.createdTime = Date()
-        newNote.lastEditTime = Date()
-        newNote.title = content.components(separatedBy: ".").first ?? "Untitled"
-        newNote.backgroundTheme = "Default"
-        CoreDataManager.shared.saveContext()
+    // Dependency Injection
+    
+    init(coreDataManager: CoreDataManagerProtocol = CoreDataManager.shared,
+         logger: LoggerProtocol = ConsoleLogger()) {
+        self.coreDataManager = coreDataManager
+        self.logger = logger
     }
     
-    func updateNote(note: NoteModel, newContent: String) {
+    private func saveContext() {
+        do {
+            try coreDataManager.context.save()
+        } catch {
+            let errorMessage = "Save failed: \(error.localizedDescription)"
+            logger.logError(errorMessage)
+            onError?(errorMessage)
+        }
+    }
+    
+    // Update an existing note
+    func updateNote(_ note: NoteModel, newContent: String) {
         note.content = newContent
         note.lastEditTime = Date()
         note.title = newContent.components(separatedBy: ".").first ?? "Untitled"
-        CoreDataManager.shared.saveContext()
+        saveContext()
     }
     
-    func deleteNote(note: NoteModel) {
-        context.delete(note)
-        CoreDataManager.shared.saveContext()
-    }
-    
-    func fetchNotes() -> [NoteModel] {
+    func fetchNotes(sortAscending: Bool) -> [NoteModel] {
         let request = NoteModel.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(key: "createdTime", ascending: sortAscending)]
+        return executeFetch(request: request)
+    }
+    
+    func fetchNotes(with predicate: NSPredicate?) -> [NoteModel] {
+        let request = NoteModel.fetchRequest()
+        request.predicate = predicate
+        return executeFetch(request: request)
+    }
+    
+    private func executeFetch(request: NSFetchRequest<NoteModel>) -> [NoteModel] {
         do {
-            return try context.fetch(request)
+            return try coreDataManager.context.fetch(request)
         } catch {
-            print("Fetch error: \(error)")
+            onError?("Failed to fetch notes: \(error.localizedDescription)")
             return []
         }
     }
+    
+    func addNote(content: String) {
+        coreDataManager.context.perform { [weak self] in
+            let newNote = NoteModel(context: self?.coreDataManager.context ?? NSManagedObjectContext())
+            newNote.content = content
+            newNote.createdTime = Date()
+            newNote.lastEditTime = Date()
+            self?.saveContext()
+        }
+    }
+    
+    func deleteNote(_ note: NoteModel) {
+        coreDataManager.context.delete(note)
+        saveContext()
+    }
 }
+
+
+
 

@@ -7,37 +7,59 @@
 
 import UIKit
 
+protocol NoteDetailViewControllerDelegate: AnyObject {
+    func didSaveNote()
+}
+
 class NoteDetailViewController: UIViewController {
     weak var delegate: NoteDetailViewControllerDelegate?
     let textView = UITextView()
     let viewModel = NotesViewModel()
+    var note: NoteModel?
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .white
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Save", style: .done, target: self, action: #selector(saveNote))
-        
+        navigationItem.rightBarButtonItems = [
+            UIBarButtonItem(title: "Save", style: .done, target: self, action: #selector(saveNote)),
+            UIBarButtonItem(title: "Edit", style: .plain, target: self, action: #selector(editNote)),
+            UIBarButtonItem(title: "Delete", style: .plain, target: self, action: #selector(deleteNote)), // Add delete button
+        ]
         textView.frame = view.bounds
         textView.font = UIFont.systemFont(ofSize: 18)
         view.addSubview(textView)
+        if let note = note {
+            textView.text = note.content
+        }
+    }
+    @objc func deleteNote() {
+        guard let note = note else { return }
+        
+        // Show confirmation alert
+        let alert = UIAlertController(title: "Delete Note", message: "Are you sure you want to delete this note?", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { _ in
+            self.viewModel.deleteNote(note)
+            self.delegate?.didSaveNote() // Notify delegate to refresh the list
+            self.navigationController?.popViewController(animated: true)
+        })
+        present(alert, animated: true)
     }
     
     @objc func saveNote() {
         guard let content = textView.text, !content.isEmpty else { return }
-        viewModel.addNote(content: content)
+        if let note = note {
+            viewModel.updateNote(note, newContent: content)
+        } else {
+            viewModel.addNote(content: content)
+        }
         delegate?.didSaveNote()
         navigationController?.popViewController(animated: true)
     }
-}
-
-extension NotesViewController: NoteDetailViewControllerDelegate {
-    func didSaveNote() {
-        notes = viewModel.fetchNotes()
-        tableView.reloadData()
+    
+    @objc func editNote() {
+        textView.isEditable = true
+        textView.becomeFirstResponder()
     }
 }
 
-protocol NoteDetailViewControllerDelegate: AnyObject {
-    func didSaveNote()
-}
 
