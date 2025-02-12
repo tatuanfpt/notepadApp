@@ -18,6 +18,16 @@ class NotesViewController: UIViewController {
     private let loadingIndicator = UIActivityIndicatorView(style: .medium)
     private let gradientKey = "savedGradientColors"
     private var viewModel: NotesViewModelProtocol = NotesViewModel()
+    private var searchTimer: Timer?
+    private let emptyStateLabel: UILabel = {
+        let label = UILabel()
+        label.text = "No results found."
+        label.textColor = .secondaryLabel
+        label.font = UIFont.systemFont(ofSize: 18, weight: .medium)
+        label.textAlignment = .center
+        label.isHidden = true
+        return label
+    }()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -55,10 +65,15 @@ class NotesViewController: UIViewController {
         ])
     }
     
-    private func reloadNotes() {
-        viewModel.fetchNotes(sortAscending: sortAscending)
-        collectionView.reloadData()
+    private func showEmptyStateIfNeeded() {
+        let isEmpty = isSearching ? filteredNotes.isEmpty : notes.isEmpty
+        emptyStateLabel.isHidden = !(isEmpty && isSearching)
     }
+    
+    private func reloadNotes() {
+        viewModel.loadMoreNotes()
+    }
+    
     private func setupGradientBackground() {
         gradientLayer = CAGradientLayer()
         gradientLayer.frame = view.bounds
@@ -122,6 +137,7 @@ class NotesViewController: UIViewController {
         collectionView.dataSource = self
         collectionView.register(NoteCell.self, forCellWithReuseIdentifier: "NoteCell")
         collectionView.backgroundColor = .clear
+        collectionView.backgroundView = emptyStateLabel
         view.addSubview(collectionView)
     }
     
@@ -219,15 +235,25 @@ extension NotesViewController: UICollectionViewDataSource, UICollectionViewDeleg
 // MARK: - UISearchResultsUpdating
 extension NotesViewController: UISearchResultsUpdating {
     func updateSearchResults(for searchController: UISearchController) {
-        guard let query = searchController.searchBar.text?.lowercased(), !query.isEmpty else {
-            filteredNotes = notes
-            collectionView.reloadData()
-            return
+        searchTimer?.invalidate() // Cancel previous timer
+        searchTimer = Timer.scheduledTimer(
+            withTimeInterval: 0.3, // 300ms delay
+            repeats: false
+        ) { [weak self] _ in
+            guard let self = self else { return }
+            guard let query = searchController.searchBar.text?.trimmingCharacters(in: .whitespaces), !query.isEmpty else {
+                self.filteredNotes = self.notes
+                self.collectionView.reloadData()
+                self.showEmptyStateIfNeeded()
+                return
+            }
+            
+            // Case-insensitive search
+            let predicate = NSPredicate(format: "content CONTAINS[cd] %@ OR title CONTAINS[cd] %@", query, query)
+            self.filteredNotes = self.viewModel.fetchNotes(with: predicate)
+            self.collectionView.reloadData()
+            self.showEmptyStateIfNeeded()
         }
-        
-        let predicate = NSPredicate(format: "content CONTAINS[cd] %@ OR title CONTAINS[cd] %@", query, query)
-        filteredNotes = viewModel.fetchNotes(with: predicate)
-        collectionView.reloadData()
     }
 }
 
