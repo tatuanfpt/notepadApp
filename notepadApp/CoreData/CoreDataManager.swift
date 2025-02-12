@@ -73,8 +73,16 @@ class NotesViewModel {
     }
     
     func deleteNote(note: NoteModel) {
-        context.delete(note)
-        CoreDataManager.shared.saveContext()
+        context.delete(note) // Delete from Core Data
+        saveContext() // Save changes
+    }
+
+    private func saveContext() {
+        do {
+            try context.save()
+        } catch {
+            print("Save error: \(error)")
+        }
     }
     
     func fetchNotes(with predicate: NSPredicate? = nil) -> [NoteModel] {
@@ -271,7 +279,8 @@ class NoteDetailViewController: UIViewController {
         view.backgroundColor = .white
         navigationItem.rightBarButtonItems = [
             UIBarButtonItem(title: "Save", style: .done, target: self, action: #selector(saveNote)),
-            UIBarButtonItem(title: "Edit", style: .plain, target: self, action: #selector(editNote))
+            UIBarButtonItem(title: "Edit", style: .plain, target: self, action: #selector(editNote)),
+            UIBarButtonItem(title: "Delete", style: .plain, target: self, action: #selector(deleteNote)) // Add delete button
         ]
         
         textView.frame = view.bounds
@@ -281,6 +290,20 @@ class NoteDetailViewController: UIViewController {
         if let note = note {
             textView.text = note.content
         }
+    }
+    
+    @objc func deleteNote() {
+        guard let note = note else { return }
+        
+        // Show confirmation alert
+        let alert = UIAlertController(title: "Delete Note", message: "Are you sure you want to delete this note?", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { _ in
+            self.viewModel.deleteNote(note: note)
+            self.delegate?.didSaveNote() // Notify delegate to refresh the list
+            self.navigationController?.popViewController(animated: true)
+        })
+        present(alert, animated: true)
     }
     
     @objc func saveNote() {
