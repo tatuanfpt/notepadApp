@@ -6,6 +6,15 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		26C1161D2D5B5AE100B23799 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 26C1161C2D5B5AE100B23799 /* FirebaseAuth */; };
+		26C1161F2D5B5AE100B23799 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 26C1161E2D5B5AE100B23799 /* FirebaseFirestore */; };
+		26C116212D5B5AE100B23799 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 26C116202D5B5AE100B23799 /* FirebaseStorage */; };
+		26E18E292D5C335100F06C50 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 26E18E282D5C335100F06C50 /* FirebaseCore */; };
+		26E18E2B2D5C335500F06C50 /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = 26E18E2A2D5C335500F06C50 /* FirebaseDatabase */; };
+		26E18E2D2D5C336D00F06C50 /* FirebaseInstallations in Frameworks */ = {isa = PBXBuildFile; productRef = 26E18E2C2D5C336D00F06C50 /* FirebaseInstallations */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		260A5B052D54C05C007DA723 /* notepadApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = notepadApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -36,6 +45,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				26E18E2B2D5C335500F06C50 /* FirebaseDatabase in Frameworks */,
+				26C1161D2D5B5AE100B23799 /* FirebaseAuth in Frameworks */,
+				26C1161F2D5B5AE100B23799 /* FirebaseFirestore in Frameworks */,
+				26E18E2D2D5C336D00F06C50 /* FirebaseInstallations in Frameworks */,
+				26E18E292D5C335100F06C50 /* FirebaseCore in Frameworks */,
+				26C116212D5B5AE100B23799 /* FirebaseStorage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -46,6 +61,7 @@
 			isa = PBXGroup;
 			children = (
 				260A5B072D54C05C007DA723 /* notepadApp */,
+				26C1161B2D5B5AE100B23799 /* Frameworks */,
 				260A5B062D54C05C007DA723 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -56,6 +72,13 @@
 				260A5B052D54C05C007DA723 /* notepadApp.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		26C1161B2D5B5AE100B23799 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -78,6 +101,12 @@
 			);
 			name = notepadApp;
 			packageProductDependencies = (
+				26C1161C2D5B5AE100B23799 /* FirebaseAuth */,
+				26C1161E2D5B5AE100B23799 /* FirebaseFirestore */,
+				26C116202D5B5AE100B23799 /* FirebaseStorage */,
+				26E18E282D5C335100F06C50 /* FirebaseCore */,
+				26E18E2A2D5C335500F06C50 /* FirebaseDatabase */,
+				26E18E2C2D5C336D00F06C50 /* FirebaseInstallations */,
 			);
 			productName = notepadApp;
 			productReference = 260A5B052D54C05C007DA723 /* notepadApp.app */;
@@ -107,6 +136,11 @@
 			);
 			mainGroup = 260A5AFC2D54C05C007DA723;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				265B7F492D5B57A20010EA6C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				2646B24A2D5B5989009D4D60 /* XCRemoteSwiftPackageReference "GoogleUtilities" */,
+				26C1161A2D5B5A3500B23799 /* XCRemoteSwiftPackageReference "gtm-session-fetcher" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 260A5B062D54C05C007DA723 /* Products */;
 			projectDirPath = "";
@@ -331,6 +365,66 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		2646B24A2D5B5989009D4D60 /* XCRemoteSwiftPackageReference "GoogleUtilities" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleUtilities.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.0.2;
+			};
+		};
+		265B7F492D5B57A20010EA6C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.8.1;
+			};
+		};
+		26C1161A2D5B5A3500B23799 /* XCRemoteSwiftPackageReference "gtm-session-fetcher" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/gtm-session-fetcher.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		26C1161C2D5B5AE100B23799 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 265B7F492D5B57A20010EA6C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		26C1161E2D5B5AE100B23799 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 265B7F492D5B57A20010EA6C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		26C116202D5B5AE100B23799 /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 265B7F492D5B57A20010EA6C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
+		};
+		26E18E282D5C335100F06C50 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 265B7F492D5B57A20010EA6C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		26E18E2A2D5C335500F06C50 /* FirebaseDatabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 265B7F492D5B57A20010EA6C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseDatabase;
+		};
+		26E18E2C2D5C336D00F06C50 /* FirebaseInstallations */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 265B7F492D5B57A20010EA6C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseInstallations;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 260A5AFD2D54C05C007DA723 /* Project object */;
 }

@@ -107,7 +107,42 @@ class NotesViewModel {
             return []
         }
     }
-
+    
+    func syncNotes() {
+        FirestoreManager.shared.fetchNotes { [weak self] firestoreNotes in
+            guard let self = self else { return }
+            let localNotes = self.fetchNotes()
+            
+            // Merge local and remote notes
+            let mergedNotes = self.mergeNotes(localNotes: localNotes, remoteNotes: firestoreNotes)
+            
+            // Save merged notes to Core Data
+            self.saveNotes(mergedNotes)
+            
+            // Sync local notes to Firestore
+            for note in localNotes {
+                FirestoreManager.shared.syncNote(note)
+            }
+        }
+    }
+    
+    func fetchNotes() -> [NoteModel] {
+        return []
+    }
+    
+    private func mergeNotes(localNotes: [NoteModel], remoteNotes: [NoteModel]) -> [NoteModel] {
+        // Implement conflict resolution logic here
+        return localNotes + remoteNotes.filter { remoteNote in
+            !localNotes.contains { $0.objectID == remoteNote.objectID }
+        }
+    }
+    
+    private func saveNotes(_ notes: [NoteModel]) {
+        for note in notes {
+            context.insert(note)
+        }
+        saveContext()
+    }
 }
 
 import UIKit
@@ -129,6 +164,20 @@ class NotesViewController: UIViewController {
         navigationItem.rightBarButtonItems = [
             UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addNewNote))
         ]
+        signInAnonymously()
+        viewModel.syncNotes()
+            // ... rest of the code
+    }
+    
+    private func signInAnonymously() {
+        AuthManager.shared.signInAnonymously { result in
+            switch result {
+            case .success(let user):
+                print("Signed in anonymously with user ID: \(user.uid)")
+            case .failure(let error):
+                print("Failed to sign in anonymously: \(error.localizedDescription)")
+            }
+        }
     }
     
     @objc func addNewNote() {
@@ -323,11 +372,21 @@ class NoteDetailViewController: UIViewController {
     }
 }
 
+import FirebaseFirestore
+import FirebaseCore
+
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        FirebaseApp.configure()
+        
+        // Enable Firestore offline persistence
+        let settings = FirestoreSettings()
+        settings.isPersistenceEnabled = true
+        Firestore.firestore().settings = settings
+        
         window = UIWindow(frame: UIScreen.main.bounds)
         let navController = UINavigationController(rootViewController: NotesViewController())
         window?.rootViewController = navController
