@@ -9,6 +9,7 @@ import CoreData
 
 @objc(NoteModel)
 class NoteModel: NSManagedObject {
+    @NSManaged var uuid: UUID
     @NSManaged var id: Int
     @NSManaged var title: String
     @NSManaged var content: String
