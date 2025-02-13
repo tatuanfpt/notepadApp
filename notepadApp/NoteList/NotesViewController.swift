@@ -195,16 +195,17 @@ extension NotesViewController: UICollectionViewDataSource, UICollectionViewDeleg
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "NoteCell", for: indexPath) as! NoteCell
-        if let note = viewModel.note(at: indexPath.row) {
-            cell.titleLabel.text = note.title
-            cell.contentLabel.text = note.content
-            cell.dateLabel.text = DateFormatter.localizedString(from: note.createdTime, dateStyle: .short, timeStyle: .short)
-        }
+        guard let originalNote = viewModel.note(at: indexPath.row) else { return UICollectionViewCell() }
+        let note = isSearching ? filteredNotes[indexPath.row] : originalNote
+        cell.titleLabel.text = note.title
+        cell.contentLabel.text = note.content
+        cell.dateLabel.text = DateFormatter.localizedString(from: note.createdTime, dateStyle: .short, timeStyle: .short)
         return cell
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        let note = isSearching ? filteredNotes[indexPath.row] : notes[indexPath.row]
+        guard let originalNote = viewModel.note(at: indexPath.row) else { return  }
+        let note = isSearching ? filteredNotes[indexPath.row] : originalNote
         let detailVC = NoteDetailViewController()
         detailVC.note = note
         detailVC.delegate = self
@@ -221,14 +222,12 @@ extension NotesViewController: UICollectionViewDataSource, UICollectionViewDeleg
     }
     
     private func deleteNote(at indexPath: IndexPath) {
-        let note = isSearching ? filteredNotes[indexPath.row] : notes[indexPath.row]
-        viewModel.deleteNote(note)
+        guard let originalNote = viewModel.note(at: indexPath.row) else { return }
+        let note = isSearching ? filteredNotes[indexPath.row] : originalNote
         if isSearching {
-            filteredNotes.remove(at: indexPath.row)
-        } else {
-            notes.remove(at: indexPath.row)
+            filteredNotes = filteredNotes.filter { $0 != note }
         }
-        collectionView.deleteItems(at: [indexPath])
+        viewModel.deleteNote(note)
     }
 }
 
@@ -242,7 +241,7 @@ extension NotesViewController: UISearchResultsUpdating {
         ) { [weak self] _ in
             guard let self = self else { return }
             guard let query = searchController.searchBar.text?.trimmingCharacters(in: .whitespaces), !query.isEmpty else {
-                self.filteredNotes = self.notes
+                self.filteredNotes = []
                 self.collectionView.reloadData()
                 self.showEmptyStateIfNeeded()
                 return
