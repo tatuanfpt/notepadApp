@@ -12,7 +12,7 @@ class NotesViewController: UIViewController {
     var notes: [NoteModel] = []
     var filteredNotes: [NoteModel] = []
     let searchController = UISearchController(searchResultsController: nil)
-    var sortAscending: Bool = true // Default to ascending order
+    var sortAscending: Bool = false // Default to ascending order
     var gradientLayer: CAGradientLayer!
     private var isLoadingMoreNotes = false
     private let loadingIndicator = UIActivityIndicatorView(style: .medium)
@@ -132,13 +132,22 @@ class NotesViewController: UIViewController {
             return self?.createLayoutSection(for: layoutEnv)
         }
         
-        collectionView = UICollectionView(frame: view.bounds, collectionViewLayout: layout)
+        collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        collectionView.translatesAutoresizingMaskIntoConstraints = false
         collectionView.delegate = self
         collectionView.dataSource = self
         collectionView.register(NoteCell.self, forCellWithReuseIdentifier: "NoteCell")
+        view.addSubview(collectionView)
         collectionView.backgroundColor = .clear
         collectionView.backgroundView = emptyStateLabel
-        view.addSubview(collectionView)
+        // Pin to safe area
+        NSLayoutConstraint.activate([
+            collectionView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+        
     }
     
     private func createLayoutSection(for layoutEnv: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
