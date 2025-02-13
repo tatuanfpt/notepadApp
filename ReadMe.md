@@ -20,13 +20,13 @@ A simple iOS app for managing notes, built with **UIKit** and **Core Data**. Sup
 6. **Random Backgrounds:** `CAGradientLayer` is used to generate random gradients for visual appeal.
 
 ## Setup
-1. Clone the repository.
+1. Clone the repository, choose `main` branch.
 3. Add your `GoogleService-Info.plist` file for Firebase integration.
 4. Build and run the app.
 
 ## Future Improvements
 - Add more unit tests for View Model and Firestore operations.
-- Implement conflict resolution for Firestore sync.
+- Finish Firestore intergation + conflict resolution sync.
 - Add animations for note transitions.
 
 ## Screenshots
