@@ -30,5 +30,12 @@ A simple iOS app for managing notes, built with **UIKit** and **Core Data**. Sup
 - Add animations for note transitions.
 
 ## Screenshots
-![Home Screen](screenshots/home.png)
-![Search](screenshots/search.png)
+![Home Screen]
+![home](https://github.com/user-attachments/assets/b26cda96-ebeb-4eae-b69a-f6c79d436ec7)
+
+![Search]
+![search](https://github.com/user-attachments/assets/dadd9902-f063-4499-8309-af9092d7b4a2)
+
+
+No Result
+![no-result](https://github.com/user-attachments/assets/3525d306-e39d-4576-abe2-f36efa7cc0c4)
