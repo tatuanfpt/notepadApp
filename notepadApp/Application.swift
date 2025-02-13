@@ -19,7 +19,6 @@ final class Application {
         var expectViewController: UIViewController!
         expectViewController = NotesViewController()
         expectViewController.title = "Notepad"
-        expectViewController.view.backgroundColor = .green
         if let window = UIApplication.shared.windows.first {
             let navigationController = UINavigationController(rootViewController: expectViewController)
             window.rootViewController = navigationController
