@@ -145,7 +145,7 @@ final class NotesViewModel: NSObject, NotesViewModelProtocol, NSFetchedResultsCo
         return executeFetch(request: request)
     }
     
-    private func executeFetch(request: NSFetchRequest<NoteModel>) -> [NoteModel] {
+    func executeFetch(request: NSFetchRequest<NoteModel>) -> [NoteModel] {
         do {
             return try coreDataManager.context.fetch(request)
         } catch {
