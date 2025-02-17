@@ -94,13 +94,16 @@ final class NotesViewModel: NSObject, NotesViewModelProtocol, NSFetchedResultsCo
         }
     }
     
+    // NotesViewModel.swift
     func loadMoreNotes() {
-        guard numberOfNotes() < totalNotesCount else { return } // Fix: Don't load if all notes are fetched
+        guard numberOfNotes() < totalNotesCount else { return }
         
-        currentBatchSize += 20
+        // Ensure we don't exceed total notes
+        currentBatchSize = min(currentBatchSize + 20, totalNotesCount)
         fetchedResultsController.fetchRequest.fetchLimit = currentBatchSize
+        
         reloadData()
-        calculateTotalNotesCount() // Recalculate after loading
+        calculateTotalNotesCount()
     }
     
     func numberOfNotes() -> Int {
@@ -125,12 +128,36 @@ final class NotesViewModel: NSObject, NotesViewModelProtocol, NSFetchedResultsCo
         }
     }
     
-    // Update an existing note
+    // NotesViewModel.swift
+    func addNote(content: String) {
+        coreDataManager.context.performAndWait {
+            guard let entity = NSEntityDescription.entity(forEntityName: "NoteModel", in: coreDataManager.context) else {
+                onError?("Failed to create NoteModel entity")
+                return
+            }
+            
+            let newNote = NoteModel(entity: entity, insertInto: coreDataManager.context)
+            newNote.content = content
+            newNote.createdTime = Date()
+            newNote.lastEditTime = Date()
+            saveContext()
+        }
+    }
+
+    func deleteNote(_ note: NoteModel) {
+        coreDataManager.context.performAndWait {
+            coreDataManager.context.delete(note)
+            saveContext()
+        }
+    }
+
     func updateNote(_ note: NoteModel, newContent: String) {
-        note.content = newContent
-        note.lastEditTime = Date()
-        note.title = newContent.components(separatedBy: ".").first ?? "Untitled"
-        saveContext()
+        coreDataManager.context.performAndWait {
+            note.content = newContent
+            note.lastEditTime = Date()
+            note.title = newContent.components(separatedBy: ".").first ?? "Untitled"
+            saveContext()
+        }
     }
     
     func fetchNotes(sortAscending: Bool) -> [NoteModel] {
@@ -152,21 +179,6 @@ final class NotesViewModel: NSObject, NotesViewModelProtocol, NSFetchedResultsCo
             onError?("Failed to fetch notes: \(error.localizedDescription)")
             return []
         }
-    }
-    
-    func addNote(content: String) {
-        coreDataManager.context.performAndWait { // Use performAndWait
-            let newNote = NoteModel(context: coreDataManager.context)
-            newNote.content = content
-            newNote.createdTime = Date()
-            newNote.lastEditTime = Date()
-            saveContext() // Save immediately
-        }
-    }
-    
-    func deleteNote(_ note: NoteModel) {
-        coreDataManager.context.delete(note)
-        saveContext()
     }
 }
 
