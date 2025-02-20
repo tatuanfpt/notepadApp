@@ -13,7 +13,8 @@ class NotesViewController: UIViewController {
     var filteredNotes: [NoteModel] = []
     let searchController = UISearchController(searchResultsController: nil)
     var sortAscending: Bool = false // Default to ascending order
-    var gradientLayer: CAGradientLayer!
+    var gradientView: GradientView!
+    
     private var isLoadingMoreNotes = false
     private let loadingIndicator = UIActivityIndicatorView(style: .medium)
     private let gradientKey = "savedGradientColors"
@@ -46,7 +47,7 @@ class NotesViewController: UIViewController {
         navigationItem.rightBarButtonItems = [
             UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addNewNote))
         ]
-        setupGradientBackground()
+        setupGradientView()
         setupRefreshButton()
         loadSavedGradient()
     }
@@ -74,17 +75,6 @@ class NotesViewController: UIViewController {
         viewModel.loadMoreNotes()
     }
     
-    private func setupGradientBackground() {
-        gradientLayer = CAGradientLayer()
-        gradientLayer.frame = view.bounds
-        updateGradientColors()
-        view.layer.insertSublayer(gradientLayer, at: 0)
-    }
-    
-    private func updateGradientColors() {
-        gradientLayer.colors = [UIColor.random().cgColor, UIColor.random().cgColor]
-    }
-    
     private func setupRefreshButton() {
         let refreshButton = UIBarButtonItem(
             image: UIImage(systemName: "arrow.clockwise"),
@@ -95,24 +85,40 @@ class NotesViewController: UIViewController {
         navigationItem.rightBarButtonItems?.append(refreshButton)
     }
     
-    @objc private func refreshBackground() {
-        updateGradientColors()
-        saveGradientColors()
+    private func setupGradientView() {
+        gradientView = GradientView()
+        gradientView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(gradientView)
+        
+        // Pin GradientView to the four dimensions of the main view
+        NSLayoutConstraint.activate([
+            gradientView.topAnchor.constraint(equalTo: view.topAnchor),
+            gradientView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            gradientView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            gradientView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+        ])
     }
     
-    private func saveGradientColors() {
-        let colors = gradientLayer.colors as! [CGColor]
-        let colorStrings = colors.map { $0.toString() }
-        UserDefaults.standard.set(colorStrings, forKey: gradientKey)
+    // Refresh the gradient background
+    @objc func refreshBackground() {
+        let colors = [UIColor.red, UIColor.blue] // Replace with your desired colors
+        gradientView.updateGradientColors(colors: colors)
     }
     
-    private func loadSavedGradient() {
-        if let colorStrings = UserDefaults.standard.array(forKey: gradientKey) as? [String] {
-            let colors = colorStrings.map { CGColor.fromString($0)}
-            gradientLayer.colors = colors
+    // Load saved gradient colors
+    func loadSavedGradient() {
+        if let savedColors = UserDefaults.standard.array(forKey: "savedGradientColors") as? [UIColor] {
+            gradientView.updateGradientColors(colors: savedColors)
         } else {
-            updateGradientColors()
+            // Default colors if nothing is saved
+            gradientView.updateGradientColors(colors: [UIColor.random(), UIColor.random()])
         }
+    }
+    
+    // Save gradient colors
+    func saveGradientColors() {
+        let colors = [UIColor.red, UIColor.blue] // Replace with your current gradient colors
+        UserDefaults.standard.set(colors, forKey: "savedGradientColors")
     }
     
     private func showErrorAlert(message: String) {
